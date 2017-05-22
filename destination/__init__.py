@@ -24,23 +24,20 @@
 from collections import namedtuple
 
 import abc
+import re
+
+_RAISE_ERROR = object()
 
 
 class BaseDispatcher(abc.ABC):
-    @abc.abstractmethod
     def resolve(self, path):
-        raise NotImplementedError
+        return self._resolve(self, path)
 
     @abc.abstractmethod
+    def _resolve(self, path, *matched_args, **matched_kwargs):
+        raise NotImplementedError
+
     def reverse(self, name, *args, **kwargs):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def add(self, path_re, handler, name=None):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def remove(self, name_or_path_re):
         raise NotImplementedError
 
 
@@ -48,4 +45,30 @@ Rule = nametuple('Rule', ["path_re", "handler", "name"])
 
 
 class Dispatcher(BaseDispatcher):
-    pass
+    def __init__(self, __DefaultHandler=_RAISE_ERROR):
+        self._rules = []
+        self._name_dict = {}
+
+        self._DefaultHandler = __DefaultHandler
+
+    def add(self, *rules):
+        for rule in rules:
+            if rule.name is not None:
+                if rule.name in self._name_dict.keys():
+                    raise KeyError(
+                        "Rule with the name {} already existed."
+                        .format(rule.name))
+
+                self._name_dict[rule.name] = rule
+            self._rules.append(rule)
+
+    def remove(self, __rule):
+        if isinstance(name_or_path_re, re._pattern_type):
+            try:
+                self._rules.remove(__rule)
+
+                if __rule.name is not None:
+                    del self._name_dict[__rule.name]
+
+            except KeyError as e:
+                raise KeyError("No matched rule found.") from e
