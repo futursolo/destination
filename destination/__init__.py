@@ -29,46 +29,126 @@ import re
 _RAISE_ERROR = object()
 
 
+class NotMatched(Exception):
+    pass
+
+
+class NoMatchesFound:
+    pass
+
+
 class BaseDispatcher(abc.ABC):
     def resolve(self, path):
         return self._resolve(self, path)
 
     @abc.abstractmethod
-    def _resolve(self, path, *matched_args, **matched_kwargs):
+    def _resolve(self, path, **matched_kwargs):
         raise NotImplementedError
 
-    def reverse(self, name, *args, **kwargs):
+    def reverse(self, name, **kwargs):
+        return "/" + self._reverse(name, **kwargs)
+
+    def _reverse(self, name, **kwargs):
         raise NotImplementedError
 
+RuleMatchResult = namedtuple(
+    "RuleMatchResult". ["handler", "kwargs", "path_rest"])
 
-Rule = nametuple('Rule', ["path_re", "handler", "name"])
+
+MatchResult = namedtuple("MatchResult", ["handler", "kwargs"])
+
+
+class Rule:
+    @property
+    def path_re(self):
+        raise NotImplementedError
+
+    @property
+    def handler(self):
+        raise NotImplementedError
+
+    @property
+    def name(self):
+        raise NotImplementedError
+
+    def match(self, path):
+        raise NotImplementedError
+
+    def reverse(self, **kwargs):
+        raise NotImplementedError
 
 
 class Dispatcher(BaseDispatcher):
-    def __init__(self, __DefaultHandler=_RAISE_ERROR):
+    def __init__(self, __default_handler=_RAISE_ERROR):
         self._rules = []
-        self._name_dict = {}
+        self._rules_with_name = {}
 
-        self._DefaultHandler = __DefaultHandler
+        self._default_handler = __default_handler
 
     def add(self, *rules):
         for rule in rules:
             if rule.name is not None:
-                if rule.name in self._name_dict.keys():
+                if rule.name in self._rules_with_name.keys():
                     raise KeyError(
                         "Rule with the name {} already existed."
                         .format(rule.name))
 
-                self._name_dict[rule.name] = rule
+                self._rules_with_name[rule.name] = rule
             self._rules.append(rule)
 
     def remove(self, __rule):
-        if isinstance(name_or_path_re, re._pattern_type):
+        try:
+            self._rules.remove(__rule)
+
+            if __rule.name is not None:
+                del self._rules_with_name[__rule.name]
+
+        except (KeyError, ValueError) as e:
+            raise KeyError("No matched rule found.") from e
+
+    def _resolve(self, path, **matched_kwargs):
+        if path.startswith("/"):
+            path = path[1:]
+
+        matched_kwargs = dict(matched_kwargs)
+
+        for rule in self._rules:
             try:
-                self._rules.remove(__rule)
+                result = rule.match(path)
 
-                if __rule.name is not None:
-                    del self._name_dict[__rule.name]
+            except NotMatched:
+                continue
 
-            except KeyError as e:
-                raise KeyError("No matched rule found.") from e
+        matched_kwargs.update(**result.kwargs)
+
+        if isinstance(result.handler, BaseDispatcher):
+            return result.handler._resolve(result.path_rest, **matched_kwargs)
+
+        else:
+            return MatchResult(handler=result.handler, kwargs=matched_kwargs)
+
+    def _reverse(self, name, **kwargs):
+        current_name, *name_rest = name.split(".", 1)
+
+        if current_name not in self._rules_with_name.keys():
+            raise KeyError("No such rule called {}.".format(name))
+
+        rule = self._rules_with_name[current_name]
+
+        if name_rest:
+            if not isinstance(rule.handler, BaseDispatcher):
+                raise KeyError(
+                    "{} is not a dispatcher, it cannot have child rules."
+                    .format(current_name))
+
+                try:
+                    partial_path = rule.handler._reverse(
+                        self, name_rest[0], **kwargs)
+
+                except KeyError as e:
+                    raise KeyError("No such rule called {}".format(name))
+
+        else:
+            partial_path = ""
+
+        return rule.reverse(**kwargs) + partial_path
