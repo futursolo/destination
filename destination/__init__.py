@@ -33,7 +33,7 @@ class NotMatched(Exception):
     pass
 
 
-class NoMatchesFound:
+class NoMatchesFound(NotMatched, KeyError):
     pass
 
 
@@ -59,17 +59,27 @@ MatchResult = namedtuple("MatchResult", ["handler", "kwargs"])
 
 
 class Rule:
+    def __init__(self, __path_re, handler, name=None):
+        self._path_re = __path_re
+
+        if isinstance(self._path_re, str):
+            self._path_re = re.compile(self._path_re)
+
+        self._handler = handler
+
+        self._name = name
+
     @property
     def path_re(self):
-        raise NotImplementedError
+        return self._path_re
 
     @property
     def handler(self):
-        raise NotImplementedError
+        return self._handler
 
     @property
     def name(self):
-        raise NotImplementedError
+        return self._name
 
     def match(self, path):
         raise NotImplementedError
@@ -104,41 +114,52 @@ class Dispatcher(BaseDispatcher):
                 del self._rules_with_name[__rule.name]
 
         except (KeyError, ValueError) as e:
-            raise KeyError("No matched rule found.") from e
+            raise NoMatchesFound("No matched rule found.") from e
 
     def _resolve(self, path, **matched_kwargs):
-        if path.startswith("/"):
-            path = path[1:]
+        try:
+            if path.startswith("/"):
+                path = path[1:]
 
-        matched_kwargs = dict(matched_kwargs)
+            matched_kwargs = dict(matched_kwargs)
 
-        for rule in self._rules:
-            try:
-                result = rule.match(path)
+            for rule in self._rules:
+                try:
+                    result = rule.match(path)
 
-            except NotMatched:
-                continue
+                except NotMatched:
+                    continue
 
-        matched_kwargs.update(**result.kwargs)
+            else:
+                raise NoMatchesFound
 
-        if isinstance(result.handler, BaseDispatcher):
-            return result.handler._resolve(result.path_rest, **matched_kwargs)
+            matched_kwargs.update(**result.kwargs)
 
-        else:
-            return MatchResult(handler=result.handler, kwargs=matched_kwargs)
+            if isinstance(result.handler, BaseDispatcher):
+                return result.handler._resolve(result.path_rest, **matched_kwargs)
+
+            else:
+                return MatchResult(handler=result.handler, kwargs=matched_kwargs)
+
+        except NoMatchesFound:
+            if self._default_handler is _RAISE_ERROR:
+                raise
+
+            else:
+                return MatchResult(self._default_handler, kwargs={})
 
     def _reverse(self, name, **kwargs):
         current_name, *name_rest = name.split(".", 1)
 
         if current_name not in self._rules_with_name.keys():
-            raise KeyError("No such rule called {}.".format(name))
+            raise NoMatchesFound("No such rule called {}.".format(name))
 
         rule = self._rules_with_name[current_name]
 
         if name_rest:
             if not isinstance(rule.handler, BaseDispatcher):
-                raise KeyError(
-                    "{} is not a dispatcher, it cannot have child rules."
+                raise NoMatchesFound(
+                    "{} is not a dispatcher, it cannot have subrules."
                     .format(current_name))
 
                 try:
@@ -146,7 +167,8 @@ class Dispatcher(BaseDispatcher):
                         self, name_rest[0], **kwargs)
 
                 except KeyError as e:
-                    raise KeyError("No such rule called {}".format(name))
+                    raise NoMatchesFound(
+                        "No such rule called {}".format(name)) from e
 
         else:
             partial_path = ""
