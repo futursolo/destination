@@ -39,7 +39,7 @@ class NoMatchesFound(NotMatched, KeyError):
 
 class BaseDispatcher(abc.ABC):
     def resolve(self, path):
-        return self._resolve(self, path)
+        return self._resolve(path)
 
     @abc.abstractmethod
     def _resolve(self, path, **matched_kwargs):
@@ -52,7 +52,7 @@ class BaseDispatcher(abc.ABC):
         raise NotImplementedError
 
 RuleMatchResult = namedtuple(
-    "RuleMatchResult". ["handler", "kwargs", "path_rest"])
+    "RuleMatchResult", ["handler", "kwargs", "path_rest"])
 
 
 MatchResult = namedtuple("MatchResult", ["handler", "kwargs"])
@@ -64,6 +64,17 @@ class Rule:
 
         if isinstance(self._path_re, str):
             self._path_re = re.compile(self._path_re)
+
+        if not self._path_re.pattern.startswith("^"):
+            raise ValueError(
+                "A path pattern must match from the beginning.")
+
+        if not self._path_re.pattern.endswith("$"):
+            if not isinstance(handler, BaseDispatcher):
+                raise ValueError(
+                    "The handler of the path pattern is not instintate "
+                    "from a subclass of BaseDispatcher, the pattern must "
+                    "match the end.")
 
         self._handler = handler
 
@@ -82,7 +93,15 @@ class Rule:
         return self._name
 
     def match(self, path):
-        raise NotImplementedError
+        matched = self._path_re.match(path)
+
+        if matched is None:
+            raise NotMatched("The path does not match the rule.")
+
+        return RuleMatchResult(
+            handler=self._handler,
+            kwargs=dict(matched.groupdict()),
+            path_rest=path[matched.span()[1]:])
 
     def reverse(self, **kwargs):
         raise NotImplementedError
@@ -129,6 +148,9 @@ class Dispatcher(BaseDispatcher):
 
                 except NotMatched:
                     continue
+
+                else:
+                    break
 
             else:
                 raise NoMatchesFound
