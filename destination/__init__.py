@@ -37,6 +37,31 @@ class NoMatchesFound(NotMatched, KeyError):
     pass
 
 
+class ReverseError(Exception):
+    pass
+
+
+class NonReversible(ReverseError):
+    pass
+
+
+class _ReMatchGroup:
+    _named_group_re = re.compile(r"^\?P<(.*)>.*$")
+
+    def __init__(self, __group_str):
+        matched = self._named_group_re.fullmatch(__group_str)
+
+        if matched:
+            self._name = matched.groups()[0]
+
+        else:
+            raise NonReversible("Positional Group is not Reversible.")
+
+    @property
+    def name(self):
+        return self._name
+
+
 class BaseDispatcher(abc.ABC):
     def resolve(self, path):
         return self._resolve(path)
@@ -49,7 +74,7 @@ class BaseDispatcher(abc.ABC):
         return "/" + self._reverse(name, **kwargs)
 
     def _reverse(self, name, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("Reverse is not supported.")
 
 RuleMatchResult = namedtuple(
     "RuleMatchResult", ["handler", "kwargs", "path_rest"])
@@ -103,8 +128,22 @@ class Rule:
             kwargs=dict(matched.groupdict()),
             path_rest=path[matched.span()[1]:])
 
-    def reverse(self, **kwargs):
+    @property
+    def _reverse_groups(self):
         raise NotImplementedError
+
+    def reverse(self, **kwargs):
+        result = []
+
+        for group in self._reverse_groups:
+            if isinstance(group, str):
+                result.append(group)
+
+            else:
+                result.append(kwargs[group.name])
+
+        return "".join(result)
+
 
 
 class Dispatcher(BaseDispatcher):
