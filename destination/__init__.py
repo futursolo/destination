@@ -46,13 +46,15 @@ class NonReversible(ReverseError):
 
 
 class _ReMatchGroup:
-    _named_group_re = re.compile(r"^\?P<(.*)>.*$")
+    _named_group_re = re.compile(r"^\?P<(.*)>(.*)$")
 
     def __init__(self, __group_str):
         matched = self._named_group_re.fullmatch(__group_str)
 
         if matched:
-            self._name = matched.groups()[0]
+            self._name, self._pattern = matched.groups()
+
+            self._pattern = re.compile(self._pattern)
 
         else:
             raise NonReversible("Positional Group is not Reversible.")
@@ -60,6 +62,10 @@ class _ReMatchGroup:
     @property
     def name(self):
         return self._name
+
+    @property
+    def pattern(self):
+        return self._pattern
 
 
 class BaseDispatcher(abc.ABC):
@@ -84,6 +90,12 @@ MatchResult = namedtuple("MatchResult", ["handler", "kwargs"])
 
 
 class Rule:
+    _unescaped_pattern = re.compile(
+        r"([^\\]|^)([\.\^\$\*\+\?\{\[\|]|\\[0-9AbBdDsSwWZuU])")
+
+    _escaped_pattern = re.compile(
+        r"\\([\.\^\$\*\+\?\{\[\|]|\\[0-9AbBdDsSwWZuU])")
+
     def __init__(self, __path_re, handler, name=None):
         self._path_re = __path_re
 
@@ -128,9 +140,46 @@ class Rule:
             kwargs=dict(matched.groupdict()),
             path_rest=path[matched.span()[1]:])
 
+    def _check_pattern_frag(self, pattern_frag):
+        if self._harmful_frag.search(pattern_frag):
+            raise NonReversible("Pattern outside a brackets.")
+
+        return pattern_frag
+
     @property
     def _reverse_groups(self):
-        raise NotImplementedError
+        if not hasattr(self, "_cached_reverse_groups"):
+            groups = []
+
+            rest_pattern_str = self._path_re.pattern
+
+            if rest_pattern_str.startswith("^"):
+                rest_pattern_str = rest_pattern_str[1:]
+
+            if rest_pattern_str.endswith("$"):
+                rest_pattern_str = rest_pattern_str[:-1]
+
+            while True:
+                begin_pos = rest_pattern_str.find("(")
+
+                if begin_pos == -1:  # No more groups.
+                    groups.append(self._check_pattern_frag(rest_pattern_str))
+                    rest_pattern_str = ""
+                    break
+
+                groups.append(
+                    self._check_pattern_frag(rest_pattern_str[:begin_pos]))
+
+                rest_pattern_str = rest_pattern_str[begin_pos + 1:]
+
+                end_pos = rest_pattern_str.find(")")
+                groups.append(_ReMatchGroup(rest_pattern_str[:end_pos]))
+
+                rest_pattern_str = rest_pattern_str[end_pos + 1:]
+
+            self._cached_reverse_groups = groups
+
+        return self._cached_reverse_groups
 
     def reverse(self, **kwargs):
         result = []
@@ -140,10 +189,13 @@ class Rule:
                 result.append(group)
 
             else:
+                if group.pattern.fullmatch(kwargs[group.name]) is None:
+                    raise ReverseError(
+                        "The content to be filled into the "
+                        "pattern is not valid.")
                 result.append(kwargs[group.name])
 
         return "".join(result)
-
 
 
 class Dispatcher(BaseDispatcher):
@@ -197,10 +249,12 @@ class Dispatcher(BaseDispatcher):
             matched_kwargs.update(**result.kwargs)
 
             if isinstance(result.handler, BaseDispatcher):
-                return result.handler._resolve(result.path_rest, **matched_kwargs)
+                return result.handler._resolve(
+                    result.path_rest, **matched_kwargs)
 
             else:
-                return MatchResult(handler=result.handler, kwargs=matched_kwargs)
+                return MatchResult(
+                    handler=result.handler, kwargs=matched_kwargs)
 
         except NoMatchesFound:
             if self._default_handler is _RAISE_ERROR:
