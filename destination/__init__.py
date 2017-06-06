@@ -141,10 +141,23 @@ class Rule:
             path_rest=path[matched.span()[1]:])
 
     def _check_pattern_frag(self, pattern_frag):
-        if self._harmful_frag.search(pattern_frag):
-            raise NonReversible("Pattern outside a brackets.")
+        if self._unescaped_pattern.search(pattern_frag):
+            raise NonReversible("Pattern outside brackets.")
 
-        return pattern_frag
+        unescaped_pattern_frag = []
+
+        pos = 0
+
+        for matched in self._escaped_pattern.finditer(pattern_frag):
+            start_pos, end_pos = pos, matched.start()
+
+            unescaped_pattern_frag.append(pattern_frag[start_pos:end_pos])
+
+            pos = end_pos + 1
+
+        unescaped_pattern_frag.append(pattern_frag[pos:])
+
+        return "".join(unescaped_pattern_frag)
 
     @property
     def _reverse_groups(self):
