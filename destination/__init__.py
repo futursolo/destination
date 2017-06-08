@@ -29,6 +29,10 @@ import re
 _RAISE_ERROR = object()
 
 
+class InvalidName(ValueError):
+    pass
+
+
 class NotMatched(Exception):
     pass
 
@@ -45,6 +49,54 @@ class NonReversible(ReverseError):
     pass
 
 
+ResolvedPath = namedtuple("MatchResult", ["identifier", "kwargs"])
+
+
+class BaseRule(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def identifier(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def parse(self, __path):
+        raise NotImplementedError
+
+    def compose(self, __name, **kwargs):
+        raise NotImplementedError("Reversing is not supported.")
+
+
+class BaseDispatcher(abc.ABC):
+    _name_re = re.compile(r"^[a-zA-Z]([a-zA-Z0-9\_]+)?$")
+
+    def _check_name(self, __name):
+        if re.fullmatch(self._name_re, __name) is None:
+            raise InvalidName("{} is not a valid name.".format(__name))
+
+    def resolve(self, __path):
+        if __path.startswith("/"):
+            __path = __path[1:]
+
+        return self._resolve(__path)
+
+    @abc.abstractmethod
+    def _resolve(self, __path, **matched_kwargs):
+        raise NotImplementedError
+
+    def _split_name(self, __name):
+        current_name, *name_rest = __name.split(".", 1)
+
+        rest_name = name_rest[0] if name_rest else None
+
+        return current_name, rest_name
+
+    def reverse(self, __name, **kwargs):
+        return "/" + self._reverse(__name, **kwargs)
+
+    def _reverse(self, __name, **kwargs):
+        raise NotImplementedError("Reversing is not supported.")
+
+
 class _ReMatchGroup:
     _named_group_re = re.compile(r"^\?P<(.*)>(.*)$")
 
@@ -57,7 +109,7 @@ class _ReMatchGroup:
             self._pattern = re.compile(self._pattern)
 
         else:
-            raise NonReversible("Positional Group is not Reversible.")
+            raise NonReversible("Non-named Groups are not Reversible.")
 
     @property
     def name(self):
@@ -68,35 +120,14 @@ class _ReMatchGroup:
         return self._pattern
 
 
-class BaseDispatcher(abc.ABC):
-    def resolve(self, path):
-        return self._resolve(path)
-
-    @abc.abstractmethod
-    def _resolve(self, path, **matched_kwargs):
-        raise NotImplementedError
-
-    def reverse(self, name, **kwargs):
-        return "/" + self._reverse(name, **kwargs)
-
-    def _reverse(self, name, **kwargs):
-        raise NotImplementedError("Reverse is not supported.")
-
-RuleMatchResult = namedtuple(
-    "RuleMatchResult", ["handler", "kwargs", "path_rest"])
-
-
-MatchResult = namedtuple("MatchResult", ["handler", "kwargs"])
-
-
-class Rule:
+class ReRule(BaseRule):
     _unescaped_pattern = re.compile(
         r"([^\\]|^)([\.\^\$\*\+\?\{\[\|]|\\[0-9AbBdDsSwWZuU])")
 
     _escaped_pattern = re.compile(
-        r"\\([\.\^\$\*\+\?\{\[\|]|\\[0-9AbBdDsSwWZuU])")
+        r"\\([\.\^\$\*\+\?\{\[\(\|]|\\[0-9AbBdDsSwWZuU])")
 
-    def __init__(self, __path_re, handler, name=None):
+    def __init__(self, __path_re, identifier=None):
         self._path_re = __path_re
 
         if isinstance(self._path_re, str):
@@ -106,41 +137,30 @@ class Rule:
             raise ValueError(
                 "A path pattern must match from the beginning.")
 
-        if not self._path_re.pattern.endswith("$"):
-            if not isinstance(handler, BaseDispatcher):
-                raise ValueError(
-                    "The handler of the path pattern is not instintate "
-                    "from a subclass of BaseDispatcher, the pattern must "
-                    "match the end.")
+        self._identifier = identifier or self
 
-        self._handler = handler
-
-        self._name = name
+        if not self._path_re.pattern.endswith("$") and \
+                not isinstance(self, BaseDispatcher):
+            raise ValueError(
+                "This path pattern is not instintated "
+                "with a subclass of BaseDispatcher; hence, the pattern must "
+                "match the end.")
 
     @property
-    def path_re(self):
-        return self._path_re
+    def identifier(self):
+        return self._identifier
 
-    @property
-    def handler(self):
-        return self._handler
+    def parse(self, __path):
+        parsed = self._path_re.match(__path)
 
-    @property
-    def name(self):
-        return self._name
-
-    def match(self, path):
-        matched = self._path_re.match(path)
-
-        if matched is None:
+        if parsed is None:
             raise NotMatched("The path does not match the rule.")
 
-        return RuleMatchResult(
-            handler=self._handler,
-            kwargs=dict(matched.groupdict()),
-            path_rest=path[matched.span()[1]:])
+        return ResolvedPath(
+            identifier=self._identifier,
+            kwargs=dict(matched.groupdict()))
 
-    def _check_pattern_frag(self, pattern_frag):
+    def _justify_pattern_frag(self, pattern_frag):
         if self._unescaped_pattern.search(pattern_frag):
             raise NonReversible("Pattern outside brackets.")
 
@@ -176,12 +196,12 @@ class Rule:
                 begin_pos = rest_pattern_str.find("(")
 
                 if begin_pos == -1:  # No more groups.
-                    groups.append(self._check_pattern_frag(rest_pattern_str))
+                    groups.append(self._justify_pattern_frag(rest_pattern_str))
                     rest_pattern_str = ""
                     break
 
                 groups.append(
-                    self._check_pattern_frag(rest_pattern_str[:begin_pos]))
+                    self._justify_pattern_frag(rest_pattern_str[:begin_pos]))
 
                 rest_pattern_str = rest_pattern_str[begin_pos + 1:]
 
@@ -194,111 +214,121 @@ class Rule:
 
         return self._cached_reverse_groups
 
-    def reverse(self, **kwargs):
+    def compose(self, __name, **kwargs):
+        if __name is not None:
+            raise TypeError("A ReRule is not subscriptable.")
+
         result = []
 
         for group in self._reverse_groups:
             if isinstance(group, str):
                 result.append(group)
 
+            elif group.pattern.fullmatch(kwargs[group.name]) is None:
+                raise ReverseError(
+                    "The content to be filled into the "
+                    "pattern is not valid.")
+
             else:
-                if group.pattern.fullmatch(kwargs[group.name]) is None:
-                    raise ReverseError(
-                        "The content to be filled into the "
-                        "pattern is not valid.")
                 result.append(kwargs[group.name])
 
         return "".join(result)
 
 
 class Dispatcher(BaseDispatcher):
-    def __init__(self, __default_handler=_RAISE_ERROR):
+    def __init__(self):
         self._rules = []
         self._rules_with_name = {}
 
-        self._default_handler = __default_handler
+    def add(self, rule, *, name=None):
+        if name is not None:
+            if name in self._rules_with_name.keys():
+                raise KeyError(
+                    "Rule with the name {} already existed."
+                    .format(name))
 
-    def add(self, *rules):
-        for rule in rules:
-            if rule.name is not None:
-                if rule.name in self._rules_with_name.keys():
-                    raise KeyError(
-                        "Rule with the name {} already existed."
-                        .format(rule.name))
-
-                self._rules_with_name[rule.name] = rule
-            self._rules.append(rule)
+            self._check_name(name)
+            self._rules_with_name[name] = rule
+        self._rules.append(rule)
 
     def remove(self, __rule):
         try:
             self._rules.remove(__rule)
 
-            if __rule.name is not None:
-                del self._rules_with_name[__rule.name]
+            if __rule not in self._rules_with_name.values():
+                return
+
+            self._rules_with_name = \
+                {k: v for k, v in self._rules_with_name.items() if v != __rule}
 
         except (KeyError, ValueError) as e:
             raise NoMatchesFound("No matched rule found.") from e
 
-    def _resolve(self, path, **matched_kwargs):
-        try:
-            if path.startswith("/"):
-                path = path[1:]
+    def _resolve(self, __path, **matched_kwargs):
+        for rule in self._rules:
+            try:
+                result = rule.parse(__path)
 
-            matched_kwargs = dict(matched_kwargs)
-
-            for rule in self._rules:
-                try:
-                    result = rule.match(path)
-
-                except NotMatched:
-                    continue
-
-                else:
-                    break
+            except NotMatched:
+                continue
 
             else:
-                raise NoMatchesFound
-
-            matched_kwargs.update(**result.kwargs)
-
-            if isinstance(result.handler, BaseDispatcher):
-                return result.handler._resolve(
-                    result.path_rest, **matched_kwargs)
-
-            else:
-                return MatchResult(
-                    handler=result.handler, kwargs=matched_kwargs)
-
-        except NoMatchesFound:
-            if self._default_handler is _RAISE_ERROR:
-                raise
-
-            else:
-                return MatchResult(self._default_handler, kwargs={})
-
-    def _reverse(self, name, **kwargs):
-        current_name, *name_rest = name.split(".", 1)
-
-        if current_name not in self._rules_with_name.keys():
-            raise NoMatchesFound("No such rule called {}.".format(name))
-
-        rule = self._rules_with_name[current_name]
-
-        if name_rest:
-            if not isinstance(rule.handler, BaseDispatcher):
-                raise NoMatchesFound(
-                    "{} is not a dispatcher, it cannot have subrules."
-                    .format(current_name))
-
-                try:
-                    partial_path = rule.handler._reverse(
-                        self, name_rest[0], **kwargs)
-
-                except KeyError as e:
-                    raise NoMatchesFound(
-                        "No such rule called {}".format(name)) from e
+                break
 
         else:
-            partial_path = ""
+            raise NoMatchesFound
 
-        return rule.reverse(**kwargs) + partial_path
+        matched_kwargs = dict(matched_kwargs)
+        matched_kwargs.update(**result.kwargs)
+
+        return ResolvedPath(
+            identifier=result.identifier, kwargs=matched_kwargs)
+
+    def _reverse(self, __name, **kwargs):
+        current_name, rest_name = self._split_name(__name)
+
+        try:
+            rule = self._rules_with_name[current_name]
+            return rule.compose(rest_name, **kwargs)
+
+        except (KeyError, ValueError, TypeError) as e:
+            raise NoMatchesFound(
+                "No such rule called {}.".format(__name)) from e
+
+
+class ReSubDispatcher(Dispatcher, ReRule):
+    def __init__(self, __path_re, identifier=None):
+        ReRule.__init__(self, __path_re, identifier)
+        Dispatcher.__init__(self)
+
+    def parse(self, __path):
+        parsed = self._path_re.match(__path)
+
+        if parsed is None:
+            raise NotMatched("The path does not match the rule.")
+
+        return self._resolve(
+            __path[matched.span()[1]:], dict(matched.groupdict()))
+
+    def compose(self, __name, **kwargs):
+        if __name is None:
+            raise ValueError("A ReSubDispatcher is not revisible on its own, "
+             "please provide a subrule name.")
+
+        result = []
+
+        for group in self._reverse_groups:
+            if isinstance(group, str):
+                result.append(group)
+
+            elif group.pattern.fullmatch(kwargs[group.name]) is None:
+                raise ReverseError(
+                    "The content to be filled into the "
+                    "pattern is not valid.")
+
+            else:
+                result.append(kwargs[group.name])
+
+        partial_path = "".join(result)
+
+        return partial_path + self._reverse(__name, **kwargs)
