@@ -23,8 +23,6 @@
 
 from typing import Any, NamedTuple, Dict, Pattern, List, Tuple, Optional, Union
 
-from collections import namedtuple
-
 import abc
 import re
 
