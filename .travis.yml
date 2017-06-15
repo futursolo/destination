@@ -1,0 +1,68 @@
+sudo: false
+
+matrix:
+  allow_failures:
+    - python: nightly
+
+  include:
+    - os: linux
+      python: 3.5.1
+
+    - os: linux
+      python: 3.5.2
+
+    - os: linux
+      python: 3.5
+
+    - os: linux
+      python: 3.6.0
+
+    - os: linux
+      python: 3.6.1
+      env: DEPLOY_PYPI=1
+
+    - os: linux
+      python: 3.6
+
+    - os: linux
+      python: nightly
+
+language: python
+
+install:
+  - pip install pip setuptools --upgrade
+  - pip install .[dev]
+  - pip install -U pycodestyle mypy
+  - pip install coveralls
+
+script:
+  - mypy --python-version 3.5 --disallow-untyped-calls --disallow-untyped-defs
+    --warn-unused-ignores --show-traceback --strict-optional --ignore-missing-imports
+    --follow-imports=skip --show-error-context --show-traceback -p destination
+  - pycodestyle --show-source destination
+
+deploy:
+  - provider: pypi
+    distributions: sdist bdist_wheel
+    server: https://testpypi.python.org/pypi
+    user: "futursolo"
+    password:
+      secure: "pLq/H8ggxy2rm5exbENfiSZTSbO0h8UmuFORk15tZ1DrTpr1MkQloq4VFI2cRZWfRtwt0hAGKpJnGtk9OmWdC02RTOfveEut4awqSOc5sOdOId3lPMzAkPanjng34LcCQio1vDnUjehKaqPsYZaBy0Q6lnio4UIA6pJg+26dLc3mU4BGspw20E2aMHz04d/qVuel8Qc+U3uwio0/5PwvyQkv+QHF44Sq2EV21USvPLEswlSm3ppzyZcultx6AOr8lKGvoYne9BAamPIZZVprnNlCWC1FCHTAEmZUB69ha6Sf8LY7BtPd4MZcn+4t3D9AN53CmdHk+587usd0YkNT6B+El9OZB0Ipb8tiAnANUSbg7mp3OCAK6smY1O6HES2FDr4VQWoP9/W0rC9A/15MD54h0DLSpwmcwxkrLXgDbVdTDz9MaiHbzwlM489WhLH4WkD0TysmUruBREusEb7ikt0ncG3gsSMa0xOn+lI512wNHKHn0GqlebJ/zZ2tDxDYFoDHGADEW3dOFUa9+JuFRDO5s+Uwn1INkPIsPjIEXtmNhxx5LxWF242U3wqX6lksTXRvlHJnsj44090bRaxRvV/7xBdHO0NZIedLYxaxXtScVeBaMVCmH+oG56xriDgkcPFUs8K1r2DPmNKttC/Z6nMu/9GfDjq+Jno/S6teVMI="
+    skip_cleanup: true
+    skip_upload_docs: true
+    on:
+      branch: master
+      tags: false
+      condition: "$DEPLOY_PYPI = 1"
+
+  - provider: pypi
+    distributions: sdist bdist_wheel
+    user: "futursolo"
+    password:
+      secure: "IX+Kqwf9d3MinrBhcetb+8nYkqzqz/8RVuMLa9dgMm0Rx6Z1sp6QSWcImruxOTnbm2eDzBieLrxad+ffiReT4E23V0yeL/Wbu2zojqEAfaMhaHoKwhXwcXT/QQAz3yEy1dPWXG4MKPrSLaPaq7AN3aBOZ4a1n5EhJyZeiRQgrWFSMnz8JDAqxlz8otI8p9hNhvn3yd+KE7nm9SwBfi29FC/DLmuGkLocWfcP8Cq/x659tO/qGyvnBcHR4SeOk72VWaU7KDQhokWldaz3mGbTp43soRGay4v6MJ7Yy3kJmk5ASJt4BAz1sk0QQUpTwSF07KyqDCX9ZoZ389h0xYvbgY6WcSGma/xgAYQLcR8dXOi6YdnSjv0Xm3k0TkWH3a2J4bB1pHRkR8jSx2HYbiZ4BAwoviFK+YdyoiLrt9UOMq/moYSnkUA/o/vimDsx4BlVivcjE2BVq/MYbSaLISygjmSwxKABzQk8TDUAGbzL61GI9OXWZgGtCvfxutduu4jZXx6njmVF/HWorSVAVnXvVCuSeMDwD/1ZAEQoFwv5LC/XSsydzNUX8AANCHKoDXBMMOuG+A923RwXHUV784R3/OBQgdE6Ua0+NVQI8GcmALfyli+6fwG86NxIgun5XEPySxSR9PUm/PTCFgmad2pbaD7fqBJBLxbbcdGZVNw+g/0="
+    skip_cleanup: true
+    skip_upload_docs: true
+    on:
+      branch: master
+      tags: true
+      condition: "$DEPLOY_PYPI = 1"
