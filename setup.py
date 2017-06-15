@@ -25,8 +25,8 @@ from setuptools import setup, find_packages
 
 import sys
 
-if not sys.version_info[:3] >= (3, 5, 2):
-    raise RuntimeError("Destination requires Python 3.5.2 or higher.")
+if not sys.version_info[:3] >= (3, 5, 1):
+    raise RuntimeError("Destination requires Python 3.5.1 or higher.")
 
 else:
     try:

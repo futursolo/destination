@@ -28,7 +28,7 @@ from ._version import __version__
 import abc
 import re
 
-__all__  [
+__all__ = [
     "__version__", "InvalidName", "NotMatched", "NoMatchesFound",
     "ReverseError", "NonReversible", "ResolvedPath", "BaseRule",
     "BaseDispatcher", "ReRule", "Dispatcher", "ReSubDispatcher"]
