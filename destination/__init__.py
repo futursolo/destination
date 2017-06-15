@@ -23,8 +23,15 @@
 
 from typing import Any, NamedTuple, Dict, Pattern, List, Tuple, Optional, Union
 
+from ._version import __version__
+
 import abc
 import re
+
+__all__  [
+    "__version__", "InvalidName", "NotMatched", "NoMatchesFound",
+    "ReverseError", "NonReversible", "ResolvedPath", "BaseRule",
+    "BaseDispatcher", "ReRule", "Dispatcher", "ReSubDispatcher"]
 
 _RAISE_ERROR = object()
 
@@ -136,7 +143,6 @@ class ReRule(BaseRule):
 
         else:
             self._path_re = __path_re
-
 
         if not self._path_re.pattern.startswith("^"):
             raise ValueError(

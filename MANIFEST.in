@@ -1,0 +1,11 @@
+include README.rst
+include LICENSE
+include setup.cfg
+recursive-include . *.py
+recursive-include tests *
+recursive-include docs *
+recursive-include examples *
+global-exclude *.pyo
+global-exclude *.pyc
+prune tests/.cache
+exclude ./_modify_version.py
