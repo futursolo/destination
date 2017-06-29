@@ -37,51 +37,135 @@ _RAISE_ERROR = object()
 
 
 class InvalidName(ValueError):
+    """
+    This is raised when an invalid name is provided to identify the rule.
+
+    Acceptable Name: :code:`^[a-zA-Z]([a-zA-Z0-9\_]+)?$`
+    """
     pass
 
 
 class NotMatched(Exception):
+    """
+    This is raised when the path provided cannot be parsed with the current
+    rule.
+    """
     pass
 
 
 class NoMatchesFound(NotMatched, KeyError):
+    """
+    This is raised when the path provided cannot be resolved by any rules in
+    the current dispatcher.
+    """
     pass
 
 
 class ReverseError(Exception):
+    """
+    This is raised when error occurs during the reversion.
+    """
     pass
 
 
 class NonReversible(ReverseError):
+    """
+    This is raised when the rule is not reversible.
+    """
     pass
 
 
 ResolvedPath = NamedTuple(
     'ResolvedPath', [('identifier', Any), ('kwargs', Dict[str, str])])
 
+ResolvedPath.__doc__ = "The namedtuple return upon success parsing the path."
+
 
 class BaseRule(abc.ABC):
+    """
+    This class defines a series of methods and properties that a rule
+    should implement. A dispatcher may only instances of the subclasses of
+    this class.
+    """
     @property
-    @abc.abstractmethod
     def identifier(self) -> Any:
-        raise NotImplementedError
+        """
+        The identifier of the rule.
+
+        This can be used to help the user to decide the handling process
+        after the path being successfully parsed.
+
+        Default: :code:`self` (the current instance of the rule).
+        """
+        return self
 
     @abc.abstractmethod
     def parse(self, __path: str) -> ResolvedPath:
+        """
+        Parse the path.
+
+        Upon successful parsing, a :code:`ResolvedPath` is returned, which
+        contains the information of the path.
+
+        If the path cannot be parsed with the current rule, a
+        :code:`NotMatched` is raised.
+        """
         raise NotImplementedError
 
-    def compose(self, __name: Optional[str], **kwargs: str) -> str:
+    def compose(self, __name: Optional[str]=None, **kwargs: str) -> str:
+        """
+        Compose the path with the arguments provided.
+
+        If a name is provided and the rule is not subscriptable or the
+        corresponding rule not found, a KeyError should be raised.
+
+        .. note::
+
+           Reversion is not mandatory to be implemented.
+        """
         raise NotImplementedError("Reversing is not supported.")
 
 
 class BaseDispatcher(abc.ABC):
+    """
+    This class establishes a series of methods and propeties that a
+    dispatcher should implement and provides helper method to simplify
+    the implemenation process.
+    """
+
     _name_re = re.compile(r"^[a-zA-Z]([a-zA-Z0-9\_]+)?$")
 
     def _check_name(self, __name: str) -> None:
+        """
+        Check if a name is valid to be registered to identify a rule.
+        In case of an invalid name is provided, an `InvalidName` exception is
+        raised.
+
+        Acceptable Name: :code:`^[a-zA-Z]([a-zA-Z0-9\_]+)?$`
+        """
         if re.fullmatch(self._name_re, __name) is None:
             raise InvalidName("{} is not a valid name.".format(__name))
 
+    def _split_name(self, __name: str) -> Tuple[str, Optional[str]]:
+        """
+        Split the name into two parts. This returns a tuple, contains the
+        current name and the rest of the name that may be used for further
+        subscription.
+        """
+        current_name, *name_rest = __name.split(".", 1)
+
+        rest_name = name_rest[0] if name_rest else None
+
+        return current_name, rest_name
+
     def resolve(self, __path: str) -> ResolvedPath:
+        """
+        Iterates over the rules stored to try to find a rule that can
+        successfully parse the current path.
+
+        A :code:`NoMatchesFound` exception is raised when the path provided
+        cannot be parsed with any rule in the dispatcher.
+        """
         if __path.startswith("/"):
             __path = __path[1:]
 
@@ -89,23 +173,42 @@ class BaseDispatcher(abc.ABC):
 
     @abc.abstractmethod
     def _resolve(self, __path: str, **kwargs: str) -> ResolvedPath:
+        """
+        The Implementation of path resolution, override this method to
+        implement the path resolution.
+
+        .. important::
+
+            The keyword arguments should be added into the result of the resolved
+            path; however, the arguments found in further resolution have a
+            higher priority and should override the value with the same name in
+            the values provided.
+        """
         raise NotImplementedError
 
-    def _split_name(self, __name: str) -> Tuple[str, Optional[str]]:
-        current_name, *name_rest = __name.split(".", 1)
-
-        rest_name = name_rest[0] if name_rest else None
-
-        return current_name, rest_name
-
     def reverse(self, __name: str, **kwargs: str) -> str:
+        """
+        Try to compose the rule with the name into a path with the provided
+        keyword arguments.
+        """
         return "/" + self._reverse(__name, **kwargs)
 
     def _reverse(self, __name: str, **kwargs: str) -> str:
+        """
+        The implementation of the path reversion, override this method to
+        implement the path reversion.
+
+        .. note::
+
+           Reversion is not mandatory to be implemented.
+        """
         raise NotImplementedError("Reversing is not supported.")
 
 
 class _ReMatchGroup:
+    """
+    Represent a match group from a regular expression.
+    """
     _named_group_re = re.compile(r"^\?P<(.*)>(.*)$")
 
     def __init__(self, __group_str: str) -> None:
@@ -129,6 +232,10 @@ class _ReMatchGroup:
 
 
 class ReRule(BaseRule):
+    """
+    This class is an implementation of :code:`BaseRule` that uses regular
+    expressions to parse the path.
+    """
     _unescaped_pattern = re.compile(
         r"([^\\]|^)([\.\^\$\*\+\?\{\[\|]|\\[0-9AbBdDsSwWZuU])")
 
@@ -247,11 +354,25 @@ class ReRule(BaseRule):
 
 
 class Dispatcher(BaseDispatcher):
+    """
+    This class is an implementation of :code:`BaseDispatcher` that is
+    compatible with :code:`BaseRule`. Before :code:`Dispatcher.resolve()`
+    is invoked, rules should be added using :code:`Dispatcher.add()`.
+    """
     def __init__(self) -> None:
         self._rules = []  # type: List[BaseRule]
         self._rules_with_name = {}  # type: Dict[str, BaseRule]
 
     def add(self, rule: BaseRule, *, name: Optional[str]=None) -> None:
+        """
+        Add a :code:`BaseRule` to the :code:`Dispatcher`.
+
+        If a name is provided and the rule is reversible, then it can be
+        reversed by `Dispatcher.reverse()` using the name.
+        """
+        assert isinstance(rule, BaseRule), \
+            ("You can only add instances of the subclasses of BaseRule "
+             "to this dispatcher")
         if name is not None:
             if name in self._rules_with_name.keys():
                 raise KeyError(
@@ -263,6 +384,9 @@ class Dispatcher(BaseDispatcher):
         self._rules.append(rule)
 
     def remove(self, __rule: BaseRule) -> None:
+        """
+        Remove a rule from the dispatcher.
+        """
         try:
             self._rules.remove(__rule)
 
@@ -303,11 +427,16 @@ class Dispatcher(BaseDispatcher):
             return rule.compose(rest_name, **kwargs)
 
         except (KeyError, ValueError, TypeError) as e:
-            raise NoMatchesFound(
+            raise KeyError(
                 "No such rule called {}.".format(__name)) from e
 
 
 class ReSubDispatcher(Dispatcher, ReRule):
+    """
+    A implementation of :code:`BaseDispatcher` and :code:`BaseRule` using
+    :code:`Dispatcher` and :code:`ReRule`. This class is used to further
+    parsing the url by shaving off the matched fragment.
+    """
     def __init__(self, __path_re: str, identifier: Any=None) -> None:
         ReRule.__init__(self, __path_re, identifier)
         Dispatcher.__init__(self)

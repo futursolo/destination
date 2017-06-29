@@ -20,46 +20,7 @@ Requirements
 
 Usage
 =====
-This is a simple overview of the usage, for detailed documentation please
-browse the source code.
-
-Abstract Base Classes
----------------------
-- :code:`BaseRule`:
-
-  This class establishes a series of methods and properties that a rule
-  should implement and provides helper method to simplify the implementation
-  process.
-
-- :code:`BaseDispatcher`:
-
-  This class establishes a series of methods and propeties that a
-  dispatcher should implement and provides helper method to simplify
-  the implemenation process.
-
-Implementations
----------------
-- :code:`ReRule`:
-
-  This class is an implementation of :code:`BaseRule` that uses regular
-  expressions to implement path dispatching.
-
-- :code:`Dispatcher`:
-
-  This class is an implementation of :code:`BaseDispatcher` that accepts
-  subclasses of :code:`BaseRule` and distributes the path over the rules.
-
-- :code:`ReSubDispatcher`:
-
-  This is a subclass of :code:`Dispatcher` and :code:`ReRule` that can be added
-  to a :code:`Dispatcher` and distributes the path fragment over the rules.
-
-Result & Exceptions
--------------------
-- :code:`ResolvedPath`:
-
-  This is a :code:`NamedTuple` that contains solved information from the path
-  used to be parsed by a :code:`BaseRule` or resolved by a :code:`BaseDispatcher`.
+For most cases, :code:`BaseRule` and :code:`BaseDispatcher` are not used.
 
 Licence
 =======
