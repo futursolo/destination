@@ -112,7 +112,7 @@ class BaseRule(abc.ABC):
         """
         raise NotImplementedError
 
-    def compose(self, __name: Optional[str]=None, **kwargs: str) -> str:
+    def compose(self, __name: Optional[str], **kwargs: str) -> str:
         """
         Compose the path with the arguments provided.
 
@@ -179,10 +179,10 @@ class BaseDispatcher(abc.ABC):
 
         .. important::
 
-            The keyword arguments should be added into the result of the resolved
-            path; however, the arguments found in further resolution have a
-            higher priority and should override the value with the same name in
-            the values provided.
+            The keyword arguments should be added into the result of the
+            resolved path; however, the arguments found in further resolution
+            have a higher priority and should override the value with the same
+            name in the values provided.
         """
         raise NotImplementedError
 
