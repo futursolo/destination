@@ -21,15 +21,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from destination import ReRule, Dispatcher, ReSubDispatcher
+from destination import ReRule, Dispatcher, ReSubDispatcher, NotMatched
+
+import pytest
 
 
 class ReRuleTestCase:
     def test_parse(self):
-        rule_a = ReRule(r"^/(?P<filename>.*)$")
+        rule_a = ReRule(r"^(?P<filename>.*)$")
 
-        resolved = rule_a.parse("/test.htm")
+        resolved = rule_a.parse("test.htm")
 
         assert resolved.identifier == rule_a
 
         assert resolved.kwargs["filename"] == "test.htm"
+
+    def test_not_matched(self):
+        rule_a = ReRule(r"^(?P<filename>[0-9]+)\.jpg$")
+
+        with pytest.raises(NotMatched):
+            rule_a.parse("test.png")
+
+    def test_compose(self):
+        rule_a = ReRule(r"^(?P<filename>[0-9]+)\.jpg$")
+
+        assert rule_a.compose(None, filename="1234567890") == "1234567890.jpg"

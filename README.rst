@@ -4,6 +4,9 @@ Destination
 .. image:: https://travis-ci.org/futursolo/destination.svg?branch=master
    :target: https://travis-ci.org/futursolo/destination
 
+.. image:: https://coveralls.io/repos/github/futursolo/destination/badge.svg?branch=master
+   :target: https://coveralls.io/github/futursolo/destination?branch=master
+
 Destination is a framework agnostic regular expression based path routing
 library.
 
