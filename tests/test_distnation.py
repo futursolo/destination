@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 from destination import ReRule, Dispatcher, ReSubDispatcher, NotMatched, \
-        ReverseError, NonReversible
+        ReverseError, NonReversible, NoMatchesFound
 
 import pytest
 
@@ -50,15 +50,15 @@ class ReRuleTestCase:
 
     def test_partial_re(self):
         with pytest.raises(ValueError):
-            ReRule(r"index.htm")
+            ReRule(r"index\.htm")
 
         with pytest.raises(ValueError):
-            ReRule(r"^index.htm")
+            ReRule(r"^index\.htm")
 
     def test_compose_invalid_value(self):
-        with pytest.raises(ReverseError):
-            rule_a = ReRule(r"^(?P<filename>[0-9]+).htm$")
+        rule_a = ReRule(r"^(?P<filename>[0-9]+)\.htm$")
 
+        with pytest.raises(ReverseError):
             rule_a.compose(None, filename="test")
 
     def test_justify_reverse_pattern(self):
@@ -73,3 +73,27 @@ class ReRuleTestCase:
         with pytest.raises(NonReversible):
             rule_a.compose(None)
 
+
+class DispatcherTestCase:
+    def test_resolve(self):
+        dispatcher = Dispatcher()
+        dispatcher.add(ReRule(r"^(?P<pagename>.*)\.htm$"), name="page")
+        dispatcher.add(ReRule(r"^(?P<imagename>.*)\.jpg$"), name="image")
+
+        resolved_page = dispatcher.resolve("/test.htm")
+        resolved_image = dispatcher.resolve("/test.jpg")
+
+        assert resolved_page.kwargs["pagename"] == "test"
+
+        assert resolved_image.kwargs["imagename"] == "test"
+
+        with pytest.raises(NoMatchesFound):
+            dispatcher.resolve("/test.mp3")
+
+    def test_reverse(self):
+        dispatcher = Dispatcher()
+        dispatcher.add(ReRule(r"^(?P<pagename>.*)\.htm$"), name="page")
+        dispatcher.add(ReRule(r"^(?P<imagename>.*)\.jpg$"), name="image")
+
+        assert dispatcher.reverse("page", pagename="test") == "/test.htm"
+        assert dispatcher.reverse("image", imagename="test") == "/test.jpg"
