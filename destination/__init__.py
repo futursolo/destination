@@ -113,8 +113,8 @@ class BaseRule(abc.ABC):
         raise NotImplementedError
 
     def compose(
-            self, __name: Optional[str],
-                **kwargs: str) -> str:  # pragma: no cover
+        self, __name: Optional[str],
+            **kwargs: str) -> str:  # pragma: no cover
         """
         Compose the path with the arguments provided.
 
@@ -175,8 +175,8 @@ class BaseDispatcher(abc.ABC):
 
     @abc.abstractmethod
     def _resolve(
-            self, __path: str,
-                **kwargs: str) -> ResolvedPath:  # pragma: no cover
+        self, __path: str,
+            **kwargs: str) -> ResolvedPath:  # pragma: no cover
         """
         The Implementation of path resolution, override this method to
         implement the path resolution.
@@ -249,7 +249,11 @@ class ReRule(BaseRule):
     def __init__(
         self, __path_re: Union[str, Pattern[str]],
             identifier: Any=None) -> None:
-        self._path_re = re.compile(__path_re)
+        if isinstance(__path_re, str):
+            self._path_re = re.compile(__path_re)
+
+        else:
+            self._path_re = re.compile(__path_re)
 
         if not self._path_re.pattern.startswith("^"):
             raise ValueError(
