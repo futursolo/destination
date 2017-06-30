@@ -21,15 +21,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__all__ = ["__version__"]
+from destination import ReRule, Dispatcher, ReSubDispatcher
 
-_tag_version = (0, 1, 0)
 
-_dev = 0
+class ReRuleTestCase:
+    def test_parse(self):
+        rule_a = ReRule(r"^/(?P<filename>.*)$")
 
-_version_fragments = [str(i) for i in _tag_version[:3]]
+        resolved = rule_a.parse("/test.htm")
 
-if _dev is not None:
-    _version_fragments.append("dev{}".format(_dev))
+        assert resolved.identifier == rule_a
 
-__version__ = ".".join(_version_fragments)
+        assert resolved.kwargs["filename"] == "test.htm"

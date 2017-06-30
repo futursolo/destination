@@ -40,6 +40,10 @@ script:
     --warn-unused-ignores --show-traceback --strict-optional --ignore-missing-imports
     --follow-imports=skip --show-error-context --show-traceback -p destination
   - pycodestyle --show-source destination
+  - coverage run --source=destination setup.py test
+
+after_success:
+  - coveralls
 
 deploy:
   - provider: pypi

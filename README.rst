@@ -18,9 +18,33 @@ Requirements
 ============
 - Python 3.5.1 or higher
 
+Thread Safety
+=============
+Currently, destination is not thread safety. Hence, you should deepcopy
+instances or add a mutex lock before try to use dispatchers and rules in the
+other thread.
+
 Usage
 =====
-For most cases, :code:`BaseRule` and :code:`BaseDispatcher` are not used.
+The default implementation of url parsing uses regular expressions. This is
+similar to Django and Tornado. You create rules and dispatchers to resolve and
+parse your url using regular expressions set in the rules.
+
+Generally, you should start with creating a :code:`ReRule` and a
+:code:`Dispatcher`. You can create a :code:`ReRule` with the regular expression
+that is going to be used to parse (and possibly compose) the url, and an
+optional identifier to help you identify which rule is parsed, if an identifier
+is not provided or its value is set to :code:`None`, the rule itself will be
+used as an identifier. A :code:`Dispatcher` may be instantiated with no
+arguments as a storage of multiple rules. You can add or remove rules at
+any time.
+
+:code:`ReSubDispatcher` is a sub-dispatcher that can be added to a dispatcher
+as a rule. It uses regular expressions to chop off the part matched to the
+regular expression and dispatches the rest part to the rules added to it.
+
+:code:`BaseRule` and :code:`BaseDispatcher` can be used to create custom rules
+and dispatchers.
 
 Licence
 =======
