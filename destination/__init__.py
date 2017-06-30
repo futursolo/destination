@@ -88,7 +88,7 @@ class BaseRule(abc.ABC):
     this class.
     """
     @property
-    def identifier(self) -> Any:
+    def identifier(self) -> Any:  # pragma: no cover
         """
         The identifier of the rule.
 
@@ -100,7 +100,7 @@ class BaseRule(abc.ABC):
         return self
 
     @abc.abstractmethod
-    def parse(self, __path: str) -> ResolvedPath:
+    def parse(self, __path: str) -> ResolvedPath:  # pragma: no cover
         """
         Parse the path.
 
@@ -112,7 +112,9 @@ class BaseRule(abc.ABC):
         """
         raise NotImplementedError
 
-    def compose(self, __name: Optional[str], **kwargs: str) -> str:
+    def compose(
+            self, __name: Optional[str],
+                **kwargs: str) -> str:  # pragma: no cover
         """
         Compose the path with the arguments provided.
 
@@ -172,7 +174,9 @@ class BaseDispatcher(abc.ABC):
         return self._resolve(__path)
 
     @abc.abstractmethod
-    def _resolve(self, __path: str, **kwargs: str) -> ResolvedPath:
+    def _resolve(
+            self, __path: str,
+                **kwargs: str) -> ResolvedPath:  # pragma: no cover
         """
         The Implementation of path resolution, override this method to
         implement the path resolution.
@@ -193,7 +197,7 @@ class BaseDispatcher(abc.ABC):
         """
         return "/" + self._reverse(__name, **kwargs)
 
-    def _reverse(self, __name: str, **kwargs: str) -> str:
+    def _reverse(self, __name: str, **kwargs: str) -> str:  # pragma: no cover
         """
         The implementation of the path reversion, override this method to
         implement the path reversion.
@@ -245,11 +249,7 @@ class ReRule(BaseRule):
     def __init__(
         self, __path_re: Union[str, Pattern[str]],
             identifier: Any=None) -> None:
-        if isinstance(__path_re, str):
-            self._path_re = re.compile(__path_re)
-
-        else:
-            self._path_re = __path_re
+        self._path_re = re.compile(__path_re)
 
         if not self._path_re.pattern.startswith("^"):
             raise ValueError(

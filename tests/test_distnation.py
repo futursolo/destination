@@ -21,7 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from destination import ReRule, Dispatcher, ReSubDispatcher, NotMatched
+from destination import ReRule, Dispatcher, ReSubDispatcher, NotMatched, \
+        ReverseError, NonReversible
 
 import pytest
 
@@ -46,3 +47,29 @@ class ReRuleTestCase:
         rule_a = ReRule(r"^(?P<filename>[0-9]+)\.jpg$")
 
         assert rule_a.compose(None, filename="1234567890") == "1234567890.jpg"
+
+    def test_partial_re(self):
+        with pytest.raises(ValueError):
+            ReRule(r"index.htm")
+
+        with pytest.raises(ValueError):
+            ReRule(r"^index.htm")
+
+    def test_compose_invalid_value(self):
+        with pytest.raises(ReverseError):
+            rule_a = ReRule(r"^(?P<filename>[0-9]+).htm$")
+
+            rule_a.compose(None, filename="test")
+
+    def test_justify_reverse_pattern(self):
+        rule_a = ReRule(r"^(?P<filename>.*).htm$")
+
+        with pytest.raises(NonReversible):
+            rule_a.compose(None, filename="test")
+
+    def test_reverse_non_named_group(self):
+        rule_a = ReRule(r"^(.*).htm$")
+
+        with pytest.raises(NonReversible):
+            rule_a.compose(None)
+
