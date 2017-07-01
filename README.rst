@@ -15,7 +15,7 @@ Installation
 
 .. code-block:: shell
 
-   $ pip install -U https://github.com/futursolo/destination
+   $ pip install -U destination
 
 Requirements
 ============
@@ -25,7 +25,7 @@ Thread Safety
 =============
 Currently, destination is not thread safety. Hence, you should deepcopy
 instances or add a mutex lock before try to use dispatchers and rules in the
-other thread.
+other threads.
 
 Usage
 =====

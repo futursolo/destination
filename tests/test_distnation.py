@@ -130,8 +130,8 @@ class ReSubDispatcherTestCase:
             pass
 
         api_dispatcher.add(ReRule(
-            "^login/(?P<user_id>[0-9a-zA-Z]{2,30})$"),
-            identifier=LoginHandler,
+            "^login/(?P<user_id>[0-9a-zA-Z]{2,30})$",
+            identifier=LoginHandler),
             name="login")
 
         resolved_login = dispatcher.resolve("/api/login/jctre9owy4q39p4")
