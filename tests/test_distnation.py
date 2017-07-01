@@ -84,7 +84,6 @@ class DispatcherTestCase:
         resolved_image = dispatcher.resolve("/test.jpg")
 
         assert resolved_page.kwargs["pagename"] == "test"
-
         assert resolved_image.kwargs["imagename"] == "test"
 
         with pytest.raises(NoMatchesFound):
@@ -97,3 +96,59 @@ class DispatcherTestCase:
 
         assert dispatcher.reverse("page", pagename="test") == "/test.htm"
         assert dispatcher.reverse("image", imagename="test") == "/test.jpg"
+
+    def test_remove(self):
+        dispatcher = Dispatcher()
+        image_rule = ReRule(r"^(?P<imagename>.*)\.jpg$")
+        dispatcher.add(image_rule, name="image")
+
+        resolved_image = dispatcher.resolve("/test.jpg")
+
+        assert resolved_image.kwargs["imagename"] == "test"
+
+        dispatcher.remove(image_rule)
+
+        with pytest.raises(NoMatchesFound):
+            dispatcher.resolve("/test.jpg")
+
+
+class ReSubDispatcherTestCase:
+    def test_sub_resolve(self):
+        dispatcher = Dispatcher()
+        dispatcher.add(ReRule(r"^(?P<pagename>.*)\.htm$"), name="page")
+
+        api_dispatcher = ReSubDispatcher(r"^api/")
+        dispatcher.add(api_dispatcher, name="api")
+
+        resolved_page = dispatcher.resolve("/test.htm")
+        assert resolved_page.kwargs["pagename"] == "test"
+
+        with pytest.raises(NoMatchesFound):
+            dispatcher.resolve("/test.mp3")
+
+        class LoginHandler:
+            pass
+
+        api_dispatcher.add(ReRule(
+            "^login/(?P<user_id>[0-9a-zA-Z]{2,30})$"),
+            identifier=LoginHandler,
+            name="login")
+
+        resolved_login = dispatcher.resolve("/api/login/jctre9owy4q39p4")
+
+        assert resolved_login.kwargs["user_id"] == "jctre9owy4q39p4"
+        assert resolved_login.identifier is LoginHandler
+
+    def test_sub_resolve(self):
+        dispatcher = Dispatcher()
+        dispatcher.add(ReRule(r"^(?P<pagename>.*)\.htm$"), name="page")
+
+        api_dispatcher = ReSubDispatcher(r"^api/")
+        dispatcher.add(api_dispatcher, name="api")
+
+        api_dispatcher.add(
+            ReRule("^login/(?P<user_id>[0-9a-zA-Z]{2,30})$"), name="login")
+
+        assert dispatcher.reverse(
+            "api.login", user_id = "jctre9owy4q39p4") == \
+                "/api/login/jctre9owy4q39p4"
