@@ -139,7 +139,7 @@ class ReSubDispatcherTestCase:
         assert resolved_login.kwargs["user_id"] == "jctre9owy4q39p4"
         assert resolved_login.identifier is LoginHandler
 
-    def test_sub_resolve(self):
+    def test_sub_reverse(self):
         dispatcher = Dispatcher()
         dispatcher.add(ReRule(r"^(?P<pagename>.*)\.htm$"), name="page")
 
