@@ -44,8 +44,9 @@ def modify(project_folder: str) -> None:
 
     with open("{}/_version.py".format(project_folder), "r+") as f:
         f_str = f.read()
-        f_str = re.sub(_DEV_RE, f"_dev = {dev_no}", f_str)
-        f_str = re.sub(_TAG_VERSION_RE, f"_tag_version = \"{tag}\"", f_str)
+        f_str = re.sub(_DEV_RE, "_dev = {}".format(dev_no), f_str)
+        f_str = re.sub(
+            _TAG_VERSION_RE, "_tag_version = \"{}\"".format(tag), f_str)
 
         f.seek(0)
         f.truncate()

@@ -28,7 +28,7 @@ _tag_version = "0.0.0"
 _dev = 0
 
 if _dev is not None:  # pragma: no cover
-    __version__ = _tag_version + f".dev{_dev}"
+    __version__ = _tag_version + ".dev{}".format(_dev)
 
 else:  # pragma: no cover
     __version__ = _tag_version
