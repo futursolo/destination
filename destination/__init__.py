@@ -21,7 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Any, NamedTuple, Dict, Pattern, List, Tuple, Optional, Union
+from typing import Dict, Pattern, List, Tuple, Optional, Union, \
+     TypeVar, Generic
 
 from ._version import __version__
 
@@ -33,7 +34,14 @@ __all__ = [
     "ReverseError", "NonReversible", "ResolvedPath", "BaseRule",
     "BaseDispatcher", "ReRule", "Dispatcher", "ReSubDispatcher"]
 
-_RAISE_ERROR = object()
+
+class _RaiseError:
+    pass
+
+
+_RAISE_ERROR = _RaiseError()
+
+_V = TypeVar("_V")
 
 
 class InvalidName(ValueError):
@@ -75,20 +83,31 @@ class NonReversible(ReverseError):
     pass
 
 
-ResolvedPath = NamedTuple(
-    'ResolvedPath', [('identifier', Any), ('kwargs', Dict[str, str])])
+class ResolvedPath(Generic[_V]):
+    """
+    The object returned upon successfully parsing the path.
+    """
+    def __init__(self, identifier: _V, kwargs: Dict[str, str]) -> None:
+        self._identifier = identifier
+        self.kwargs = kwargs
 
-ResolvedPath.__doc__ = "The namedtuple return upon success parsing the path."
+    @property
+    def identifier(self) -> _V:
+        return self._identifier
 
 
-class BaseRule(abc.ABC):
+_TBaseRule = TypeVar("_TBaseRule", bound="BaseRule")
+
+
+class BaseRule(Generic[_V]):
     """
     This class defines a series of methods and properties that a rule
     should implement. A dispatcher may only instances of the subclasses of
     this class.
     """
     @property
-    def identifier(self) -> Any:  # pragma: no cover
+    def identifier(self: _TBaseRule) -> \
+            Union[_TBaseRule, _V]:  # pragma: no cover
         """
         The identifier of the rule.
 
@@ -100,7 +119,9 @@ class BaseRule(abc.ABC):
         return self
 
     @abc.abstractmethod
-    def parse(self, __path: str) -> ResolvedPath:  # pragma: no cover
+    def parse(
+        self: _TBaseRule, __path: str
+                ) -> ResolvedPath[Union[_TBaseRule, _V]]:  # pragma: no cover
         """
         Parse the path.
 
@@ -128,7 +149,7 @@ class BaseRule(abc.ABC):
         raise NotImplementedError("Reversing is not supported.")
 
 
-class BaseDispatcher(abc.ABC):
+class BaseDispatcher(Generic[_V]):
     """
     This class establishes a series of methods and propeties that a
     dispatcher should implement and provides helper method to simplify
@@ -160,7 +181,7 @@ class BaseDispatcher(abc.ABC):
 
         return current_name, rest_name
 
-    def resolve(self, __path: str) -> ResolvedPath:
+    def resolve(self, __path: str) -> ResolvedPath[_V]:
         """
         Iterates over the rules stored to try to find a rule that can
         successfully parse the current path.
@@ -174,9 +195,8 @@ class BaseDispatcher(abc.ABC):
         return self._resolve(__path)
 
     @abc.abstractmethod
-    def _resolve(
-        self, __path: str,
-            **kwargs: str) -> ResolvedPath:  # pragma: no cover
+    def _resolve(self, __path: str, **kwargs: str) -> \
+            ResolvedPath[_V]:  # pragma: no cover
         """
         The Implementation of path resolution, override this method to
         implement the path resolution.
@@ -235,7 +255,10 @@ class _ReMatchGroup:
         return self._pattern
 
 
-class ReRule(BaseRule):
+_TReRule = TypeVar("_TReRule", bound="ReRule")
+
+
+class ReRule(BaseRule[_V], Generic[_V]):
     """
     This class is an implementation of :code:`BaseRule` that uses regular
     expressions to parse the path.
@@ -248,12 +271,8 @@ class ReRule(BaseRule):
 
     def __init__(
         self, __path_re: Union[str, Pattern[str]],
-            identifier: Any = None) -> None:
-        if isinstance(__path_re, str):
-            self._path_re = re.compile(__path_re)
-
-        else:
-            self._path_re = re.compile(__path_re)
+            identifier: Optional[_V] = None) -> None:
+        self._path_re = re.compile(__path_re)
 
         if not self._path_re.pattern.startswith("^"):
             raise ValueError(
@@ -269,16 +288,17 @@ class ReRule(BaseRule):
                 "match the end.")
 
     @property
-    def identifier(self) -> Any:
-        return self._identifier
+    def identifier(self: _TReRule) -> Union[_TReRule, _V]:
+        return self._identifier  # type: ignore
 
-    def parse(self, __path: str) -> ResolvedPath:
+    def parse(self: _TReRule, __path: str) -> \
+            ResolvedPath[Union[_TReRule, _V]]:
         parsed = self._path_re.match(__path)
 
         if parsed is None:
             raise NotMatched("The path does not match the rule.")
 
-        return ResolvedPath(
+        return ResolvedPath(  # type: ignore
             identifier=self._identifier,
             kwargs=dict(parsed.groupdict()))
 
@@ -357,17 +377,17 @@ class ReRule(BaseRule):
         return "".join(result)
 
 
-class Dispatcher(BaseDispatcher):
+class Dispatcher(BaseDispatcher[_V], Generic[_V]):
     """
     This class is an implementation of :code:`BaseDispatcher` that is
     compatible with :code:`BaseRule`. Before :code:`Dispatcher.resolve()`
     is invoked, rules should be added using :code:`Dispatcher.add()`.
     """
     def __init__(self) -> None:
-        self._rules = []  # type: List[BaseRule]
-        self._rules_with_name = {}  # type: Dict[str, BaseRule]
+        self._rules = []  # type: List[BaseRule[_V]]
+        self._rules_with_name = {}  # type: Dict[str, BaseRule[_V]]
 
-    def add(self, rule: BaseRule, *, name: Optional[str] = None) -> None:
+    def add(self, rule: BaseRule[_V], *, name: Optional[str] = None) -> None:
         """
         Add a :code:`BaseRule` to the :code:`Dispatcher`.
 
@@ -387,7 +407,7 @@ class Dispatcher(BaseDispatcher):
             self._rules_with_name[name] = rule
         self._rules.append(rule)
 
-    def remove(self, __rule: BaseRule) -> None:
+    def remove(self, __rule: BaseRule[_V]) -> None:
         """
         Remove a rule from the dispatcher.
         """
@@ -403,7 +423,7 @@ class Dispatcher(BaseDispatcher):
         except (KeyError, ValueError) as e:
             raise NoMatchesFound("No matched rule found.") from e
 
-    def _resolve(self, __path: str, **matched_kwargs: str) -> ResolvedPath:
+    def _resolve(self, __path: str, **matched_kwargs: str) -> ResolvedPath[_V]:
         for rule in self._rules:
             try:
                 result = rule.parse(__path)
@@ -420,7 +440,7 @@ class Dispatcher(BaseDispatcher):
         matched_kwargs = dict(matched_kwargs)
         matched_kwargs.update(result.kwargs)
 
-        return ResolvedPath(
+        return ResolvedPath(  # type: ignore
             identifier=result.identifier, kwargs=matched_kwargs)
 
     def _reverse(self, __name: str, **kwargs: str) -> str:
@@ -435,17 +455,22 @@ class Dispatcher(BaseDispatcher):
                 "No such rule called {}.".format(__name)) from e
 
 
-class ReSubDispatcher(Dispatcher, ReRule):
+_TReSubDispatcher = TypeVar("_TReSubDispatcher", bound="ReSubDispatcher")
+
+
+class ReSubDispatcher(Dispatcher[_V], ReRule[_V], Generic[_V]):
     """
     A implementation of :code:`BaseDispatcher` and :code:`BaseRule` using
     :code:`Dispatcher` and :code:`ReRule`. This class is used to further
     parsing the url by shaving off the matched fragment.
     """
-    def __init__(self, __path_re: str, identifier: Any = None) -> None:
+    def __init__(
+                self, __path_re: str, identifier: Optional[_V] = None) -> None:
         ReRule.__init__(self, __path_re, identifier)
         Dispatcher.__init__(self)
 
-    def parse(self, __path: str) -> ResolvedPath:
+    def parse(self: _TReSubDispatcher, __path: str) -> \
+            ResolvedPath[Union[_TReSubDispatcher, _V]]:
         parsed = self._path_re.match(__path)
 
         if parsed is None:
