@@ -40,7 +40,7 @@ class InvalidName(ValueError):
     """
     This is raised when an invalid name is provided to identify the rule.
 
-    Acceptable Name: :code:`^[a-zA-Z]([a-zA-Z0-9\_]+)?$`
+    Acceptable Name: :code:`^[a-zA-Z]([a-zA-Z0-9\\_]+)?$`
     """
     pass
 
@@ -143,7 +143,7 @@ class BaseDispatcher(abc.ABC):
         In case of an invalid name is provided, an `InvalidName` exception is
         raised.
 
-        Acceptable Name: :code:`^[a-zA-Z]([a-zA-Z0-9\_]+)?$`
+        Acceptable Name: :code:`^[a-zA-Z]([a-zA-Z0-9\\_]+)?$`
         """
         if re.fullmatch(self._name_re, __name) is None:
             raise InvalidName("{} is not a valid name.".format(__name))
@@ -248,7 +248,7 @@ class ReRule(BaseRule):
 
     def __init__(
         self, __path_re: Union[str, Pattern[str]],
-            identifier: Any=None) -> None:
+            identifier: Any = None) -> None:
         if isinstance(__path_re, str):
             self._path_re = re.compile(__path_re)
 
@@ -367,7 +367,7 @@ class Dispatcher(BaseDispatcher):
         self._rules = []  # type: List[BaseRule]
         self._rules_with_name = {}  # type: Dict[str, BaseRule]
 
-    def add(self, rule: BaseRule, *, name: Optional[str]=None) -> None:
+    def add(self, rule: BaseRule, *, name: Optional[str] = None) -> None:
         """
         Add a :code:`BaseRule` to the :code:`Dispatcher`.
 
@@ -441,7 +441,7 @@ class ReSubDispatcher(Dispatcher, ReRule):
     :code:`Dispatcher` and :code:`ReRule`. This class is used to further
     parsing the url by shaving off the matched fragment.
     """
-    def __init__(self, __path_re: str, identifier: Any=None) -> None:
+    def __init__(self, __path_re: str, identifier: Any = None) -> None:
         ReRule.__init__(self, __path_re, identifier)
         Dispatcher.__init__(self)
 

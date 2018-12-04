@@ -40,13 +40,13 @@ else:
 
     import _load_version
 
-setup_requires = ["setuptools", "pytest-runner>=2.11.1,<3"]
+setup_requires = ["setuptools>=40.6.2", "pytest-runner>=4.2,<5"]
 
-tests_require = ["pytest>=3.0.7,<4"]
+tests_require = ["pytest>=4.0.1,<5"]
 
 dev_requires = [
-    "mypy>=0.501,<1",
-    "pycodestyle>=2.3.1,<3"]
+    "mypy>=0.641,<1",
+    "flake8>=3.6.0,<4"]
 dev_requires.extend(tests_require)
 
 if __name__ == "__main__":

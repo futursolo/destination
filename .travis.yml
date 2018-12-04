@@ -7,39 +7,33 @@ matrix:
   include:
     - os: linux
       python: 3.5.1
-
-    - os: linux
-      python: 3.5.2
+      env: PYVER=3.5
 
     - os: linux
       python: 3.5
-
-    - os: linux
-      python: 3.6.0
-
-    - os: linux
-      python: 3.6.1
-      env: DEPLOY_PYPI=1
+      env: PYVER=3.5
 
     - os: linux
       python: 3.6
+      env: PYVER=3.6
+
+    - os: linux
+      python: 3.7
+      env: PYVER=3.7 DEPLOY_PYPI=1
 
     - os: linux
       python: nightly
+      env: PYVER=3.8
 
 language: python
 
 install:
-  - pip install pip setuptools --upgrade
+  - pip install pip setuptools flake8 mypy coveralls --upgrade
   - pip install .[dev]
-  - pip install -U pycodestyle mypy
-  - pip install coveralls
 
 script:
-  - mypy --python-version 3.5 --disallow-untyped-calls --disallow-untyped-defs
-    --warn-unused-ignores --show-traceback --strict-optional --ignore-missing-imports
-    --follow-imports=skip --show-error-context --show-traceback -p destination
-  - pycodestyle --show-source destination
+  - mypy --python-version $PYVER --strict --show-traceback --ignore-missing-imports --show-error-context -p destination
+  - flake8 .
   - coverage run --source=destination setup.py test
 
 after_success:

@@ -150,5 +150,5 @@ class ReSubDispatcherTestCase:
             ReRule("^login/(?P<user_id>[0-9a-zA-Z]{2,30})$"), name="login")
 
         assert dispatcher.reverse(
-            "api.login", user_id = "jctre9owy4q39p4") == \
-                "/api/login/jctre9owy4q39p4"
+            "api.login", user_id="jctre9owy4q39p4") == \
+            "/api/login/jctre9owy4q39p4"
