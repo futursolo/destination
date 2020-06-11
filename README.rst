@@ -23,17 +23,17 @@ Requirements
 
 Thread Safety
 =============
-Currently, destination is not thread safety. Hence, you should deepcopy
-instances or add a mutex lock before try to use dispatchers and rules in the
+Currently, destination is not thread safe. Hence, you should deepcopy
+instances or add a mutex lock before using dispatchers and rules in the
 other threads.
 
 Usage
 =====
 The default implementation of url parsing uses regular expressions. This is
-similar to Django and Tornado. You create rules and dispatchers to resolve and
-parse your url using regular expressions set in the rules.
+similar to Django and Tornado. You can create rules and dispatchers to
+resolve and parse your url using regular expressions set in the rules.
 
-Generally, you should start with creating a :code:`ReRule` and a
+Generally, you should start with :code:`ReRule` and
 :code:`Dispatcher`. You can create a :code:`ReRule` with the regular expression
 that is going to be used to parse (and possibly compose) the url, and an
 optional identifier to help you identify which rule is parsed, if an identifier
@@ -53,7 +53,7 @@ Licence
 =======
 MIT License
 
-Copyright (c) 2017 Kaede Hoshikawa
+Copyright (c) 2020 Kaede Hoshikawa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
