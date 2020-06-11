@@ -28,41 +28,34 @@ import sys
 if not sys.version_info[:3] >= (3, 5, 1):
     raise RuntimeError("Destination requires Python 3.5.1 or higher.")
 
-else:
-    try:
-        import _modify_version
+setup_requires = ["setuptools>=47.1.1",
+                  "pytest-runner>=5.2,<6", "setuptools-scm>=3.5.0"]
 
-    except ImportError:
-        pass
+install_requires = ["importlib-metadata>=1.6.1"]
 
-    else:
-        _modify_version.modify("destination")
-
-    import _load_version
-
-setup_requires = ["setuptools>=40.6.2", "pytest-runner>=4.2,<5"]
-
-tests_require = ["pytest>=4.0.1,<5"]
+tests_require = ["pytest>=4.6.11,<5"]
 
 dev_requires = [
-    "mypy>=0.641,<1",
-    "flake8>=3.6.0,<4"]
+    "mypy>=0.780,<1",
+    "flake8>=3.8.3,<4"]
 dev_requires.extend(tests_require)
 
 if __name__ == "__main__":
     setup(
         name="destination",
-        version=_load_version.load("destination"),
+        use_scm_version={"local_scheme": lambda v: ""},
         author="Kaede Hoshikawa",
         author_email="futursolo@icloud.com",
         url="https://github.com/futursolo/destination",
         license="MIT",
+        python_requires=">=3.5.1",
         description=("A Regex Based Path Routing Library."),
         long_description=open("README.rst", "r").read(),
         packages=find_packages(),
+        package_data={"": ["*"]},
         include_package_data=True,
         setup_requires=setup_requires,
-        install_requires=[],
+        install_requires=install_requires,
         tests_require=tests_require,
         extras_require={
             "test": tests_require,

@@ -8,4 +8,4 @@ recursive-include examples *
 global-exclude *.pyo
 global-exclude *.pyc
 prune tests/.cache
-exclude ./_modify_version.py
+recursive-include . py.typed
