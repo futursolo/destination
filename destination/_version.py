@@ -21,7 +21,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import importlib_metadata
+import typing
+
+if typing.TYPE_CHECKING:  # pragma: no cover
+    import importlib.metadata as importlib_metadata
+
+else:
+    try:
+        import importlib.metadata as importlib_metadata
+
+    except ImportError:
+        import importlib_metadata
 
 __version__ = importlib_metadata.version(__name__.split(".", 1)[0])
 

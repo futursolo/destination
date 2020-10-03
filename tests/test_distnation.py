@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # MIT License
 #
-# Copyright (c) 2017 Kaede Hoshikawa
+# Copyright (c) 2020 Kaede Hoshikawa
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 from destination import ReRule, Dispatcher, ReSubDispatcher, NotMatched, \
-        ReverseError, NonReversible, NoMatchesFound
+    ReverseError, NonReversible, NoMatchesFound
 
 import pytest
 

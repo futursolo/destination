@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # MIT License
 #
-# Copyright (c) 2017 Kaede Hoshikawa
+# Copyright (c) 2020 Kaede Hoshikawa
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -28,15 +28,15 @@ import sys
 if not sys.version_info[:3] >= (3, 5, 1):
     raise RuntimeError("Destination requires Python 3.5.1 or higher.")
 
-setup_requires = ["setuptools>=47.1.1",
-                  "pytest-runner>=5.2,<6", "setuptools-scm>=3.5.0"]
+setup_requires = ["setuptools>=50.3.0",
+                  "pytest-runner>=5.2,<6", "setuptools-scm>=4.1.2"]
 
-install_requires = ["importlib-metadata>=1.6.1"]
+install_requires = ["importlib-metadata>=1.7.0;python_version<'3.8'"]
 
-tests_require = ["pytest>=4.6.11,<5"]
+tests_require = ["pytest>=6.0.1,<7"]
 
 dev_requires = [
-    "mypy>=0.780,<1",
+    "mypy>=0.782,<1",
     "flake8>=3.8.3,<4"]
 dev_requires.extend(tests_require)
 
