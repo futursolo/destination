@@ -19,7 +19,7 @@ Installation
 
 Requirements
 ============
-- Python 3.5.1 or higher
+- Python 3.6.1 or higher
 
 Thread Safety
 =============
@@ -53,7 +53,7 @@ Licence
 =======
 MIT License
 
-Copyright (c) 2020 Kaede Hoshikawa
+Copyright (c) 2021 Kaede Hoshikawa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

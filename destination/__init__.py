@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # MIT License
 #
-# Copyright (c) 2020 Kaede Hoshikawa
+# Copyright (c) 2021 Kaede Hoshikawa
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -21,19 +21,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Dict, Pattern, List, Tuple, Optional, Union, \
-    TypeVar, Generic
-
-from ._version import __version__
-
+from typing import (
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Pattern,
+    Tuple,
+    TypeVar,
+    Union,
+)
 import abc
 import re
 import typing
 
+from ._version import __version__
+
 __all__ = [
-    "__version__", "InvalidName", "NotMatched", "NoMatchesFound",
-    "ReverseError", "NonReversible", "ResolvedPath", "BaseRule",
-    "BaseDispatcher", "ReRule", "Dispatcher", "ReSubDispatcher"]
+    "__version__",
+    "InvalidName",
+    "NotMatched",
+    "NoMatchesFound",
+    "ReverseError",
+    "NonReversible",
+    "ResolvedPath",
+    "BaseRule",
+    "BaseDispatcher",
+    "ReRule",
+    "Dispatcher",
+    "ReSubDispatcher",
+]
 
 
 class _RaiseError:
@@ -51,6 +68,7 @@ class InvalidName(ValueError):
 
     Acceptable Name: :code:`^[a-zA-Z]([a-zA-Z0-9\\_]+)?$`
     """
+
     pass
 
 
@@ -59,6 +77,7 @@ class NotMatched(Exception):
     This is raised when the path provided cannot be parsed with the current
     rule.
     """
+
     pass
 
 
@@ -67,6 +86,7 @@ class NoMatchesFound(NotMatched, KeyError):
     This is raised when the path provided cannot be resolved by any rules in
     the current dispatcher.
     """
+
     pass
 
 
@@ -74,6 +94,7 @@ class ReverseError(Exception):
     """
     This is raised when error occurs during the reversion.
     """
+
     pass
 
 
@@ -81,6 +102,7 @@ class NonReversible(ReverseError):
     """
     This is raised when the rule is not reversible.
     """
+
     pass
 
 
@@ -104,6 +126,7 @@ class BaseRule(Generic[_V]):
     should implement. A dispatcher may only instances of the subclasses of
     this class.
     """
+
     @property
     @abc.abstractmethod
     def identifier(self) -> _V:  # pragma: no cover
@@ -131,8 +154,8 @@ class BaseRule(Generic[_V]):
         raise NotImplementedError
 
     def compose(
-        self, __name: Optional[str],
-            **kwargs: str) -> str:  # pragma: no cover
+        self, __name: Optional[str], **kwargs: str
+    ) -> str:  # pragma: no cover
         """
         Compose the path with the arguments provided.
 
@@ -152,6 +175,7 @@ class BaseDispatcher(Generic[_V]):
     dispatcher should implement and provides helper method to simplify
     the implemenation process.
     """
+
     _name_re = re.compile(r"^[a-zA-Z]([a-zA-Z0-9\_]+)?$")
 
     def _check_name(self, __name: str) -> None:
@@ -191,8 +215,9 @@ class BaseDispatcher(Generic[_V]):
         return self._resolve(__path)
 
     @abc.abstractmethod
-    def _resolve(self, __path: str, **kwargs: str) -> \
-            ResolvedPath[_V]:  # pragma: no cover
+    def _resolve(
+        self, __path: str, **kwargs: str
+    ) -> ResolvedPath[_V]:  # pragma: no cover
         """
         The Implementation of path resolution, override this method to
         implement the path resolution.
@@ -229,18 +254,17 @@ class _ReMatchGroup:
     """
     Represent a match group from a regular expression.
     """
+
     _named_group_re = re.compile(r"^\?P<(.*)>(.*)$")
 
     def __init__(self, __group_str: str) -> None:
         matched = self._named_group_re.fullmatch(__group_str)
 
-        if matched:
-            self._name, pattern = matched.groups()
-
-            self._pattern = re.compile(pattern)
-
-        else:
+        if not matched:
             raise NonReversible("Non-named Groups are not Reversible.")
+
+        self._name, pattern = matched.groups()
+        self._pattern = re.compile(pattern)
 
     @property
     def name(self) -> str:
@@ -256,43 +280,49 @@ class ReRule(BaseRule[_V], Generic[_V]):
     This class is an implementation of :code:`BaseRule` that uses regular
     expressions to parse the path.
     """
+
     _TReRule = TypeVar("_TReRule", bound="ReRule[_V]")
 
     _unescaped_pattern = re.compile(
-        r"([^\\]|^)([\.\^\$\*\+\?\{\[\|]|\\[0-9AbBdDsSwWZuU])")
+        r"([^\\]|^)([\.\^\$\*\+\?\{\[\|]|\\[0-9AbBdDsSwWZuU])"
+    )
 
     _escaped_pattern = re.compile(
-        r"\\([\.\^\$\*\+\?\{\[\(\|]|\\[0-9AbBdDsSwWZuU])")
+        r"\\([\.\^\$\*\+\?\{\[\(\|]|\\[0-9AbBdDsSwWZuU])"
+    )
 
     @typing.overload
     def __init__(
-        self: "ReRule[_TReRule]",
-            __path_re: Union[str, Pattern[str]]) -> None:
+        self: "ReRule[_TReRule]", __path_re: Union[str, Pattern[str]]
+    ) -> None:
         ...
 
     @typing.overload
     def __init__(
-        self, __path_re: Union[str, Pattern[str]],
-            identifier: _V) -> None:
+        self, __path_re: Union[str, Pattern[str]], identifier: _V
+    ) -> None:
         ...
 
     def __init__(
-        self, __path_re: Union[str, Pattern[str]],
-            identifier: Optional[_V] = None) -> None:
+        self,
+        __path_re: Union[str, Pattern[str]],
+        identifier: Optional[_V] = None,
+    ) -> None:
         self._path_re = re.compile(__path_re)
 
         if not self._path_re.pattern.startswith("^"):
-            raise ValueError(
-                "A path pattern must match from the beginning.")
+            raise ValueError("A path pattern must match from the beginning.")
 
         self._identifier = identifier or self  # type: _V  # type: ignore
 
-        if not self._path_re.pattern.endswith("$") and \
-                not isinstance(self, BaseDispatcher):
+        if not self._path_re.pattern.endswith("$") and not isinstance(
+            self, BaseDispatcher
+        ):
             raise ValueError(
                 "This path pattern is not instintated "
                 "with a subclass of BaseDispatcher; hence, the pattern must "
-                "match the end.")
+                "match the end."
+            )
 
     @property
     def identifier(self) -> _V:
@@ -305,8 +335,8 @@ class ReRule(BaseRule[_V], Generic[_V]):
             raise NotMatched("The path does not match the rule.")
 
         return ResolvedPath(
-            identifier=self._identifier,
-            kwargs=dict(parsed.groupdict()))
+            identifier=self._identifier, kwargs=dict(parsed.groupdict())
+        )
 
     def _justify_pattern_frag(self, pattern_frag: str) -> str:
         if self._unescaped_pattern.search(pattern_frag):
@@ -349,14 +379,15 @@ class ReRule(BaseRule[_V], Generic[_V]):
                     break
 
                 groups.append(
-                    self._justify_pattern_frag(rest_pattern_str[:begin_pos]))
+                    self._justify_pattern_frag(rest_pattern_str[:begin_pos])
+                )
 
-                rest_pattern_str = rest_pattern_str[begin_pos + 1:]
+                rest_pattern_str = rest_pattern_str[begin_pos + 1 :]
 
                 end_pos = rest_pattern_str.find(")")
                 groups.append(_ReMatchGroup(rest_pattern_str[:end_pos]))
 
-                rest_pattern_str = rest_pattern_str[end_pos + 1:]
+                rest_pattern_str = rest_pattern_str[end_pos + 1 :]
 
             self._cached_reverse_groups = groups
 
@@ -375,7 +406,8 @@ class ReRule(BaseRule[_V], Generic[_V]):
             elif group.pattern.fullmatch(kwargs[group.name]) is None:
                 raise ReverseError(
                     "The content to be filled into the "
-                    "pattern is not valid.")
+                    "pattern is not valid."
+                )
 
             else:
                 result.append(kwargs[group.name])
@@ -401,14 +433,15 @@ class Dispatcher(BaseDispatcher[_V], Generic[_V]):
         If a name is provided and the rule is reversible, then it can be
         reversed by `Dispatcher.reverse()` using the name.
         """
-        assert isinstance(rule, BaseRule), \
-            ("You can only add instances of the subclasses of BaseRule "
-             "to this dispatcher")
+        assert isinstance(rule, BaseRule), (
+            "You can only add instances of the subclasses of BaseRule "
+            "to this dispatcher"
+        )
         if name is not None:
-            if name in self._rules_with_name.keys():
+            if name in self._rules_with_name:
                 raise KeyError(
-                    "Rule with the name {} already existed."
-                    .format(name))
+                    "Rule with the name {} already existed.".format(name)
+                )
 
             self._check_name(name)
             self._rules_with_name[name] = rule
@@ -424,8 +457,9 @@ class Dispatcher(BaseDispatcher[_V], Generic[_V]):
             if __rule not in self._rules_with_name.values():
                 return
 
-            self._rules_with_name = \
-                {k: v for k, v in self._rules_with_name.items() if v != __rule}
+            self._rules_with_name = {
+                k: v for k, v in self._rules_with_name.items() if v != __rule
+            }
 
         except (KeyError, ValueError) as e:
             raise NoMatchesFound("No matched rule found.") from e
@@ -448,7 +482,8 @@ class Dispatcher(BaseDispatcher[_V], Generic[_V]):
         matched_kwargs.update(result.kwargs)
 
         return ResolvedPath(
-            identifier=result.identifier, kwargs=matched_kwargs)
+            identifier=result.identifier, kwargs=matched_kwargs
+        )
 
     def _reverse(self, __name: str, **kwargs: str) -> str:
         current_name, rest_name = self._split_name(__name)
@@ -458,8 +493,7 @@ class Dispatcher(BaseDispatcher[_V], Generic[_V]):
             return rule.compose(rest_name, **kwargs)
 
         except (KeyError, ValueError, TypeError) as e:
-            raise KeyError(
-                "No such rule called {}.".format(__name)) from e
+            raise KeyError("No such rule called {}.".format(__name)) from e
 
 
 class ReSubDispatcher(Dispatcher[_V], ReRule[_V], Generic[_V]):
@@ -470,7 +504,8 @@ class ReSubDispatcher(Dispatcher[_V], ReRule[_V], Generic[_V]):
     """
 
     def __init__(
-            self, __path_re: str, identifier: Optional[_V] = None) -> None:
+        self, __path_re: str, identifier: Optional[_V] = None
+    ) -> None:
         ReRule.__init__(self, __path_re, identifier)  # type: ignore
         Dispatcher.__init__(self)
 
@@ -480,14 +515,14 @@ class ReSubDispatcher(Dispatcher[_V], ReRule[_V], Generic[_V]):
         if parsed is None:
             raise NotMatched("The path does not match the rule.")
 
-        return self._resolve(
-            __path[parsed.span()[1]:], **parsed.groupdict())
+        return self._resolve(__path[parsed.span()[1] :], **parsed.groupdict())
 
     def compose(self, __name: Optional[str], **kwargs: str) -> str:
         if __name is None:
             raise ValueError(
                 "A ReSubDispatcher is not revisible on its own, "
-                "please provide a subrule name.")
+                "please provide a subrule name."
+            )
 
         result = []
 
@@ -498,7 +533,8 @@ class ReSubDispatcher(Dispatcher[_V], ReRule[_V], Generic[_V]):
             elif group.pattern.fullmatch(kwargs[group.name]) is None:
                 raise ReverseError(
                     "The content to be filled into the "
-                    "pattern is not valid.")
+                    "pattern is not valid."
+                )
 
             else:
                 result.append(kwargs[group.name])
