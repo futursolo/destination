@@ -1,8 +1,8 @@
 ===========
 Destination
 ===========
-.. image:: https://travis-ci.org/futursolo/destination.svg?branch=master
-   :target: https://travis-ci.org/futursolo/destination
+.. image:: https://github.com/futursolo/destination/actions/workflows/everything.yml/badge.svg
+   :target: https://github.com/futursolo/destination/actions/workflows/everything.yml
 
 .. image:: https://coveralls.io/repos/github/futursolo/destination/badge.svg?branch=master
    :target: https://coveralls.io/github/futursolo/destination?branch=master
@@ -16,10 +16,6 @@ Installation
 .. code-block:: shell
 
    $ pip install -U destination
-
-Requirements
-============
-- Python 3.6.1 or higher
 
 Thread Safety
 =============

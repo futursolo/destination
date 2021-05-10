@@ -313,7 +313,7 @@ class ReRule(BaseRule[_V], Generic[_V]):
         if not self._path_re.pattern.startswith("^"):
             raise ValueError("A path pattern must match from the beginning.")
 
-        self._identifier = identifier or self  # type: _V  # type: ignore
+        self._identifier: _V = identifier or self  # type: ignore
 
         if not self._path_re.pattern.endswith("$") and not isinstance(
             self, BaseDispatcher
@@ -360,7 +360,7 @@ class ReRule(BaseRule[_V], Generic[_V]):
     @property
     def _reverse_groups(self) -> List[Union[str, _ReMatchGroup]]:
         if not hasattr(self, "_cached_reverse_groups"):
-            groups = []  # type: List[Union[str, _ReMatchGroup]]
+            groups: List[Union[str, _ReMatchGroup]] = []
 
             rest_pattern_str = self._path_re.pattern
 
@@ -423,8 +423,8 @@ class Dispatcher(BaseDispatcher[_V], Generic[_V]):
     """
 
     def __init__(self) -> None:
-        self._rules = []  # type: List[BaseRule[_V]]
-        self._rules_with_name = {}  # type: Dict[str, BaseRule[_V]]
+        self._rules: List[BaseRule[_V]] = []
+        self._rules_with_name: Dict[str, BaseRule[_V]] = {}
 
     def add(self, rule: BaseRule[_V], *, name: Optional[str] = None) -> None:
         """
