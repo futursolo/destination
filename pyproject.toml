@@ -31,7 +31,7 @@ importlib-metadata = { version = "^4.0.1", python = "<=3.7" }
 # Testing
 pytest = "^6.2.4"
 pytest-asyncio = "^0.15.1"
-pytest-cov = "^2.12.0"
+pytest-cov = "^2.12.1"
 
 # Sort imports
 isort = { extras = ["pyproject"], version = "^5.8.0" }
