@@ -72,7 +72,7 @@ class InvalidName(ValueError):
     pass
 
 
-class NotMatched(Exception):
+class NotMatched(Exception):  # noqa: N818
     """
     This is raised when the path provided cannot be parsed with the current
     rule.
@@ -81,7 +81,7 @@ class NotMatched(Exception):
     pass
 
 
-class NoMatchesFound(NotMatched, KeyError):
+class NoMatchesFound(NotMatched, KeyError):  # noqa: N818
     """
     This is raised when the path provided cannot be resolved by any rules in
     the current dispatcher.
@@ -98,7 +98,7 @@ class ReverseError(Exception):
     pass
 
 
-class NonReversible(ReverseError):
+class NonReversible(ReverseError):  # noqa: N818
     """
     This is raised when the rule is not reversible.
     """
