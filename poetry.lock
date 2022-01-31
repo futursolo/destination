@@ -137,7 +137,7 @@ importlib-metadata = {version = ">=0.9", markers = "python_version < \"3.8\""}
 
 [[package]]
 name = "flake8-black"
-version = "0.2.3"
+version = "0.2.4"
 description = "flake8 plugin to call black as a code style validator"
 category = "dev"
 optional = false
@@ -544,7 +544,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.1"
-content-hash = "0742906f724f393f4dc4853c8d612ef953d01afbe51e55aa431fd3a845540a40"
+content-hash = "8a23fada0621316af4d0fbc77ebca08878deef0da04dfe5b1814083fa8681a1a"
 
 [metadata.files]
 appdirs = [
@@ -640,8 +640,8 @@ flake8-2020 = [
     {file = "flake8_2020-1.6.1.tar.gz", hash = "sha256:db523e3383befc17c895219551ff6c9b2f6e0a5cae4c7739ea65a2238bdc6f74"},
 ]
 flake8-black = [
-    {file = "flake8-black-0.2.3.tar.gz", hash = "sha256:c199844bc1b559d91195ebe8620216f21ed67f2cc1ff6884294c91a0d2492684"},
-    {file = "flake8_black-0.2.3-py3-none-any.whl", hash = "sha256:cc080ba5b3773b69ba102b6617a00cc4ecbad8914109690cfda4d565ea435d96"},
+    {file = "flake8-black-0.2.4.tar.gz", hash = "sha256:a7871bfd1cbff431a1fc91ba60ae154510c80f575e6b9a2bbb13dfb4650afd22"},
+    {file = "flake8_black-0.2.4-py3-none-any.whl", hash = "sha256:0a70dfd97c8439827f365dc6dbc6c8c9cc087f0833625c6cc6848ff7876256be"},
 ]
 flake8-bugbear = [
     {file = "flake8-bugbear-22.1.11.tar.gz", hash = "sha256:4c2a4136bd4ecb8bf02d5159af302ffc067642784c9d0488b33ce4610da825ee"},
